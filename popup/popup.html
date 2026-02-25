@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Auto-Clicker 設定</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <h2>最速クリック予約</h2>
+        
+        <div class="form-group">
+            <label for="selector">1. クリック対象の要素セレクター</label>
+            <div class="input-group">
+                <input type="text" id="selector" placeholder="例: #enroll-btn または .btn-primary">
+                <button id="pickBtn" class="btn secondary">🔍 画面から選ぶ</button>
+            </div>
+            <p class="help-text">※別ページの同じボタンで指定できます。</p>
+        </div>
+
+        <div class="form-group">
+            <label for="targetTime">2. 実行日時</label>
+            <!-- step="1" allows picking seconds -->
+            <input type="datetime-local" id="targetTime" step="1">
+            <p class="help-text">※時間が来ると最速でミリ秒単位のクリックを行います。</p>
+        </div>
+        
+        <div class="status-panel">
+            <strong>状態: </strong><span id="statusText">待機していません</span>
+        </div>
+
+        <div class="actions">
+            <button id="startBtn" class="btn primary">待機スタート</button>
+            <button id="stopBtn" class="btn outline" disabled>キャンセル</button>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
