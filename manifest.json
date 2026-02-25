@@ -2,10 +2,10 @@
   "manifest_version": 3,
   "name": "High Precision Auto-Clicker",
   "version": "1.0",
-  "description": "Click an element exactly at a specified time with millisecond precision.",
+  "description": "ミリ秒単位の即時性が求められる予約サイトなどで、指定時刻ジャストに要素を高速クリックします。",
   "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
   "action": {
-    "default_title": "Auto-Clicker 設定",
     "default_popup": "popup/popup.html"
   },
   "content_scripts": [
