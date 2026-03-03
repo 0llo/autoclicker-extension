@@ -5,17 +5,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   const startBtn = document.getElementById('start-btn');
   const cancelBtn = document.getElementById('cancel-btn');
   const statusDiv = document.getElementById('status');
+  const countdownDiv = document.getElementById('countdown');
+
+  let countdownInterval = null;
+
+  // Set default time to today at 10:00:00
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const defaultTimeString = `${year}-${month}-${day}T10:00:00`;
+  targetTimeInput.value = defaultTimeString;
 
   // Load saved state
   chrome.storage.local.get(['selector', 'targetTime', 'isWaiting'], (result) => {
     if (result.selector) selectorInput.value = result.selector;
-    if (result.targetTime) targetTimeInput.value = result.targetTime;
-    if (result.isWaiting) {
-      setWaitingState(true);
+    if (result.isWaiting && result.targetTime) {
+      targetTimeInput.value = result.targetTime;
+      setWaitingState(true, new Date(result.targetTime).getTime());
     }
   });
 
-  function setWaitingState(isWaiting) {
+  function setWaitingState(isWaiting, targetTimeMs = null) {
     if (isWaiting) {
       startBtn.disabled = true;
       cancelBtn.disabled = false;
@@ -24,6 +35,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       pickBtn.disabled = true;
       statusDiv.textContent = "待機中です...";
       statusDiv.style.color = "blue";
+      
+      if (targetTimeMs) {
+        startCountdown(targetTimeMs);
+      }
     } else {
       startBtn.disabled = false;
       cancelBtn.disabled = true;
@@ -31,6 +46,49 @@ document.addEventListener('DOMContentLoaded', async () => {
       targetTimeInput.disabled = false;
       pickBtn.disabled = false;
       statusDiv.textContent = "";
+      stopCountdown();
+    }
+  }
+
+  function startCountdown(targetTimeMs) {
+    stopCountdown();
+    const updateCountdown = () => {
+      const remaining = targetTimeMs - Date.now();
+      if (remaining <= 0) {
+        countdownDiv.textContent = "実行時間になりました！";
+        countdownDiv.style.color = "#4CAF50";
+        stopCountdown();
+      } else {
+        const h = String(Math.floor(remaining / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
+        const ms = String(remaining % 1000).padStart(3, '0');
+        countdownDiv.textContent = `残り: ${h}:${m}:${s}.${ms}`;
+        countdownDiv.style.color = "#d32f2f";
+      }
+    };
+    updateCountdown();
+    countdownInterval = setInterval(updateCountdown, 50);
+  }
+
+  function stopCountdown() {
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    if (countdownDiv) {
+      countdownDiv.textContent = "";
+    }
+  }
+
+  async function sendMessageToTab(tabId, message) {
+    try {
+      await chrome.tabs.sendMessage(tabId, message);
+    } catch (e) {
+      console.warn("Could not send message to tab. It might not be loadable or a chrome:// page.", e);
+      if (message.action === "startPicker") {
+        alert("このページでは要素を選択できません。");
+      }
     }
   }
 
@@ -38,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   pickBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab) {
-      chrome.tabs.sendMessage(tab.id, { action: "startPicker" });
+      sendMessageToTab(tab.id, { action: "startPicker" });
       window.close(); // Close popup to let user pick
     }
   });
@@ -76,11 +134,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       isWaiting: true 
     });
 
-    setWaitingState(true);
+    setWaitingState(true, timestamp);
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab) {
-      chrome.tabs.sendMessage(tab.id, { 
+      sendMessageToTab(tab.id, { 
         action: "startWaiting", 
         selector: selector, 
         targetTime: timestamp 
@@ -95,7 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab) {
-      chrome.tabs.sendMessage(tab.id, { action: "cancelWaiting" });
+      sendMessageToTab(tab.id, { action: "cancelWaiting" });
     }
   });
 });
